@@ -5,4 +5,4 @@
 1. 实现轻量级rpc简单了解rpc的原理
 2. 调整编码规范和git开发流程：https://zh-google-styleguide.readthedocs.io/en/latest/google-cpp-styleguide/contents.html
 3. 根据本项目学习相关知识点：协程、时间轮等
-4. 仅作为学习项目，不拓展其他功能，预期时间20天
+4. 仅作为学习项目，不拓展其他功能
