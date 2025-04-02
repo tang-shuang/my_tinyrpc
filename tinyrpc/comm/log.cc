@@ -30,7 +30,6 @@
 
 namespace tinyrpc
 {
-
     extern tinyrpc::Logger::ptr gRpcLogger;
     extern tinyrpc::Config::ptr gRpcConfig;
 

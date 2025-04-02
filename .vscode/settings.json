@@ -50,6 +50,7 @@
         "typeinfo": "cpp",
         "queue": "cpp",
         "memory": "cpp",
-        "atomic": "cpp"
+        "atomic": "cpp",
+        "algorithm": "cpp"
     }
 }
