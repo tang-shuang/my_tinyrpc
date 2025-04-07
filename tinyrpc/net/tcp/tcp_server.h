@@ -29,16 +29,9 @@ namespace tinyrpc
         void init();
         int toAccept();
 
-        NetAddress::ptr getPeerAddr()
-        {
-            return m_peer_addr;
-        }
-
-        NetAddress::ptr geLocalAddr()
-        {
-            return m_local_addr;
-        }
-
+        NetAddress::ptr getPeerAddr();
+        NetAddress::ptr geLocalAddr();
+        
     private:
         int m_family{-1};
         int m_fd{-1};
@@ -100,7 +93,6 @@ namespace tinyrpc
 
         TimerEvent::ptr m_clear_clent_timer_event{nullptr};
     };
-
 }
 
 #endif
