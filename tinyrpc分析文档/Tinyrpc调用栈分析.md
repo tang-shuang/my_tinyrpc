@@ -300,16 +300,107 @@ void Reactor::loop() {
 
 
 ## 三、其他
+![](https://cdn.nlark.com/yuque/0/2025/png/34771315/1744970429576-de643c45-e3c4-4e84-b7b5-6e8af3280602.png)
+
 ### 3.1 阻塞和非阻塞
 + 阻塞
 
 ![](https://cdn.nlark.com/yuque/0/2025/png/34771315/1744706666315-270b924f-4ce2-47c6-b532-656b30d66206.png)
 
-![](https://cdn.nlark.com/yuque/0/2025/png/34771315/1744706720827-9872967e-ee21-499d-b47f-0eef181c1736.png)
+```plain
+void TinyPbRpcChannel::CallMethod(const google::protobuf::MethodDescriptor* method, 
+    google::protobuf::RpcController* controller, 
+    const google::protobuf::Message* request, 
+    google::protobuf::Message* response, 
+    google::protobuf::Closure* done) {
 
-![](https://cdn.nlark.com/yuque/0/2025/png/34771315/1744706773625-1a655f6a-5d9e-4250-850a-d0e3a2495647.png)
+// 生成controller,设置地址
+  TinyPbStruct pb_struct;
+  TinyPbRpcController* rpc_controller = dynamic_cast<TinyPbRpcController*>(controller);
+  if (!rpc_controller) {
+    ErrorLog << "call failed. falid to dynamic cast TinyPbRpcController";
+    return;
+  }
 
-![](https://cdn.nlark.com/yuque/0/2025/png/34771315/1744706791318-00e2d1ae-6baf-4e31-9b06-642fb08e316d.png)
+// 生成tcpclient
+  TcpClient::ptr m_client = std::make_shared<TcpClient>(m_addr);
+  rpc_controller->SetLocalAddr(m_client->getLocalAddr());
+  rpc_controller->SetPeerAddr(m_client->getPeerAddr());
+// 填充TinyPbStruct pd_struct包
+  pb_struct.service_full_name = method->full_name();
+  DebugLog << "call service_name = " << pb_struct.service_full_name;
+  if (!request->SerializeToString(&(pb_struct.pb_data))) {
+    ErrorLog << "serialize send package error";
+    return;
+  }
+
+  if (!rpc_controller->MsgSeq().empty()) {
+    pb_struct.msg_req = rpc_controller->MsgSeq();
+  } else {
+    // get current coroutine's msgno to set this request
+    RunTime* run_time = getCurrentRunTime();
+    if(run_time != NULL && !run_time->m_msg_no.empty()) {
+      pb_struct.msg_req = run_time->m_msg_no;
+      DebugLog << "get from RunTime succ, msgno = " << pb_struct.msg_req;
+    } else {
+      pb_struct.msg_req = MsgReqUtil::genMsgNumber();
+      DebugLog << "get from RunTime error, generate new msgno = " << pb_struct.msg_req;
+    }
+    rpc_controller->SetMsgReq(pb_struct.msg_req);
+  }
+
+  // 编码
+  AbstractCodeC::ptr m_codec = m_client->getConnection()->getCodec();
+  m_codec->encode(m_client->getConnection()->getOutBuffer(), &pb_struct);
+  if (!pb_struct.encode_succ) {
+    rpc_controller->SetError(ERROR_FAILED_ENCODE, "encode tinypb data error");
+    return;
+  }
+
+  InfoLog << "============================================================";
+  InfoLog << pb_struct.msg_req << "|" << rpc_controller->PeerAddr()->toString() 
+      << "|. Set client send request data:" << request->ShortDebugString();
+  InfoLog << "============================================================";
+  m_client->setTimeout(rpc_controller->Timeout());
+
+  // 发送请求，或得res_data
+  TinyPbStruct::pb_ptr res_data;
+  int rt = m_client->sendAndRecvTinyPb(pb_struct.msg_req, res_data);
+  if (rt != 0) {
+    rpc_controller->SetError(rt, m_client->getErrInfo());
+    ErrorLog << pb_struct.msg_req << "|call rpc occur client error, service_full_name=" << pb_struct.service_full_name << ", error_code=" 
+        << rt << ", error_info = " << m_client->getErrInfo();
+    return;
+  }
+
+  // 解码返回数据
+  if (!response->ParseFromString(res_data->pb_data)) {
+    rpc_controller->SetError(ERROR_FAILED_DESERIALIZE, "failed to deserialize data from server");
+    ErrorLog << pb_struct.msg_req << "|failed to deserialize data";
+    return;
+  }
+  if (res_data->err_code != 0) {
+    ErrorLog << pb_struct.msg_req << "|server reply error_code=" << res_data->err_code << ", err_info=" << res_data->err_info;
+    rpc_controller->SetError(res_data->err_code, res_data->err_info);
+    return;
+  }
+
+  InfoLog<< "============================================================";
+  InfoLog<< pb_struct.msg_req << "|" << rpc_controller->PeerAddr()->toString()
+      << "|call rpc server [" << pb_struct.service_full_name << "] succ" 
+      << ". Get server reply response data:" << response->ShortDebugString();
+  InfoLog<< "============================================================";
+
+  // excute callback function
+  if (done) {
+    done->Run();
+  }
+}
+```
+
+
+
+![](https://cdn.nlark.com/yuque/0/2025/png/34771315/1744967546827-f1bc38cb-8a34-4a35-9e98-f6f986134742.png)
 
 
 
@@ -317,9 +408,11 @@ void Reactor::loop() {
 
 ![](https://cdn.nlark.com/yuque/0/2025/png/34771315/1744771856459-ffe6e884-f277-42ae-b134-46d5ac488fdd.png)
 
-![](https://cdn.nlark.com/yuque/0/2025/png/34771315/1744783938525-b989474f-64ea-497e-9ce2-6d6297fe4fd7.png)
+
 
 ![](https://cdn.nlark.com/yuque/0/2025/png/34771315/1744783948285-0966df7e-f4c4-485e-833c-bb1c9c1e5e27.png)
+
+![](https://cdn.nlark.com/yuque/0/2025/png/34771315/1744972201830-8438569e-ca4b-4506-9a6b-9fa1c76af6b5.png)
 
 ### 3.2 时间轮
 注册到epoll中等待被唤醒
@@ -338,42 +431,3 @@ void Reactor::loop() {
 
 ![](https://cdn.nlark.com/yuque/0/2025/png/34771315/1744708231424-d3a6fc14-7459-466e-9788-0292265cc6da.png)
 
-### 3.3 测试
-
-```
-[root@VM-0-13-centos tinyrpc]# cpuls
-Architecture:          x86_64
-CPU op-mode(s):        32-bit, 64-bit
-Byte Order:            Little Endian
-CPU(s):                2
-On-line CPU(s) list:   0,1
-Thread(s) per core:    1
-Core(s) per socket:    2
-Socket(s):             1
-NUMA node(s):          1
-Vendor ID:             AuthenticAMD
-CPU family:            23
-Model:                 49
-Model name:            AMD EPYC 7K62 48-Core Processor
-Stepping:              0
-CPU MHz:               2595.124
-BogoMIPS:              5190.24
-Hypervisor vendor:     KVM
-Virtualization type:   full
-L1d cache:             32K
-L1i cache:             32K
-L2 cache:              4096K
-L3 cache:              16384K
-NUMA node0 CPU(s):     0,1
-
-[root@VM-0-13-centos tinyrpc]# free -h
-              total        used        free      shared  buff/cache   available
-Mem:           2.0G        293M        684M        564K        1.0G        1.5G
-Swap:            0B          0B          0B
-```
-
-| **QPS**          | **WRK 并发连接 1000** | **WRK 并发连接 2000** | **WRK 并发连接 5000** | **WRK 并发连接 10000** |
-| ---------------- | --------------------- | --------------------- | --------------------- | ---------------------- |
-| IO线程数为 **1** | **5809 QPS**          | **5847 QPS**          | **5662 QPS**          | **5602 QPS**           |
-| IO线程数为 **4** | **5791 QPS**          | **5880 QPS**          | **5663 QPS**          | **5604 QPS**           |
-| IO线程数为 **8** | **5828 QPS**          | **5775 QPS**          | **5791 QPS**          | **5668 QPS**           |
