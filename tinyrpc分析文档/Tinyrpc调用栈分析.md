@@ -431,3 +431,12 @@ void TinyPbRpcChannel::CallMethod(const google::protobuf::MethodDescriptor* meth
 
 ![](https://cdn.nlark.com/yuque/0/2025/png/34771315/1744708231424-d3a6fc14-7459-466e-9788-0292265cc6da.png)
 
+## 四、测试
+| **<font style="color:rgb(1, 4, 9);">QPS</font>** | **<font style="color:rgb(1, 4, 9);">WRK 并发连接 1000</font>** | **<font style="color:rgb(1, 4, 9);">WRK 并发连接 2000</font>** | **<font style="color:rgb(1, 4, 9);">WRK 并发连接 5000</font>** | **<font style="color:rgb(1, 4, 9);">WRK 并发连接 10000</font>** |
+| --- | --- | --- | --- | --- |
+| <font style="color:rgb(1, 4, 9);">IO线程数为</font><font style="color:rgb(1, 4, 9);"> </font>**<font style="color:rgb(1, 4, 9);">1</font>** | **<font style="color:rgb(1, 4, 9);">5809 QPS</font>** | **<font style="color:rgb(1, 4, 9);">5847 QPS</font>** | **<font style="color:rgb(1, 4, 9);">5662 QPS</font>** | **<font style="color:rgb(1, 4, 9);">5602 QPS</font>** |
+| <font style="color:rgb(1, 4, 9);">IO线程数为</font><font style="color:rgb(1, 4, 9);"> </font>**<font style="color:rgb(1, 4, 9);">4</font>** | **<font style="color:rgb(1, 4, 9);">5791 QPS</font>** | **<font style="color:rgb(1, 4, 9);">5880 QPS</font>** | **<font style="color:rgb(1, 4, 9);">5663 QPS</font>** | **<font style="color:rgb(1, 4, 9);">5604 QPS</font>** |
+| <font style="color:rgb(1, 4, 9);">IO线程数为</font><font style="color:rgb(1, 4, 9);"> </font>**<font style="color:rgb(1, 4, 9);">8</font>** | **<font style="color:rgb(1, 4, 9);">5828 QPS</font>** | **<font style="color:rgb(1, 4, 9);">5775 QPS</font>** | **<font style="color:rgb(1, 4, 9);">5791 QPS</font>** | **<font style="color:rgb(1, 4, 9);">5668 QPS</font>** |
+|  |  |  |  |  |
+
+
